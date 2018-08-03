@@ -6,90 +6,81 @@ import linecache
 import random
 import copy
 
-def eulerianPath(text):
+def eulerianPairPath(graph):
     
-    case = formatToCycleDict(text)
+    case = formatToCycle(graph)
     edges = case[0]
     start = case[1]
     end = case[2]
-    if start == "":
-        start = edges.keys()[0]
-    #return ""
     keys = edges.keys()    
-    
+    if start == "":
+        start = keys[0]
     print("start eulerianPath")
     
     #randomly select starting node
     toggle = 0
-    currentTry = edges
     position = start
     path = [position]
     while toggle == 0:
-        #print("New try")
-        #print ("path", path)
-        #print(currentTry)
+        print("New try")
         res = position
-        while areThereEdges(currentTry[position]):
-            #print("==========")
-            #print("position", position)
+        while areThereEdges(edges[position]):
             #randomly select edge and move
-            selection = random.randint(0,len(currentTry[position])- 1) 
-            while currentTry[position][selection] == "V":
-                selection = random.randint(0,len(currentTry[position])- 1) 
-            #print("selected array entry", selection)
-            movingTo = currentTry[position][selection]
-            currentTry[position][selection] = "V"
-            position = movingTo
+            selection = random.randint(0,len(edges[position])- 1) 
+            while edges[position][selection] == "V":
+                selection = random.randint(0,len(edges[position])- 1) 
+            
+            #cant use lists as keys in python so must convert list into string to use as key
+            movingTo = edges[position][selection][0] + "|" + edges[position][selection][1]
+            edges[position][selection] = "V"
             path.append(movingTo)
-            #print("moving to", movingTo)
-            #print("path",path)
             res = res + "->" + movingTo
-            #print("position",position)
-            if position not in currentTry:
+            position = movingTo
+            print("Path: ", path)
+            
+            #cant remember why this is here.
+            if position not in edges:
                 break
 
         #if there are no more edges check if all have been traversed
         toggle = 1
         for key in keys:
-            if areThereEdges(currentTry[key]) == True:
+            if areThereEdges(edges[key]) == True:
                 #if not scroll back till we find a node with edges still
                 #make that our new starting point, update path to show this
                 #then continue.
                 toggle = 0
-          #      print("path", path)
+           
                 for entry in path:
-           #         print("for Entry in path", entry)
-                    if areThereEdges(currentTry[entry]) == True:
-         #               print("position in path with edges", entry)
+                    if areThereEdges(edges[entry]) == True:
                         position = entry
                         break
-                #if we had a cycle then 0, and x will be the same
+                #if we had a cycle then path[0] and path[len(path) -1] will be the same
                 #so we delete the first entry to prevent the path being
-                #something like 5,5.
-        #        print("path", path)
+                #something like 5,5 where 5 does not point to iself.
                 path.pop(len(path) - 1)
-       #         print("path pop", path)
                 while path[0] != position:
-       #             print("path[0]", path[0], " pos", position)
                     path.append(path.pop(0))
-      #              print("path Rotation:", path)
-     #               print("")
                 path.append(position)
                 break
 
-    #print("p0", path[0], "pe", path[len(path) - 1])
-    #print("start", start, " end", end)
+    print("start", start, " end", end)
+    # if start and end dont match what we expect then rotate path till it matches.
     if end != "":
+        count = len(path) + 1
         if path[0] != start or path[len(path) - 1] != end:
             # print("popping")
             path.pop(len(path) - 1)
             while path[0] != start or path[len(path) - 1] != end:
-        #print("path[0]", path[0], " pos", position)
                 path.append(path.pop(0))
-        #print("path Rotation:", path)
-    #    print("")
-    #print("path", path)
-
+                count = count - 1
+                if count < 0:
+                    print("failed to find matching path with expected start and end..")
+                    print("start:",start,"end",end)
+                    print("path",path)
+                    return ""
+    
+    # return string of path. Start at path[0] then add each node + ->
     res = path[0]
     for e in range(1,len(path)):
         res = res + "->" + path[e]
@@ -103,17 +94,7 @@ def areThereEdges(array):
     return False
 
 
-def formatToCycleDict(badFormat):
-    dict = {}
-    #print(badFormat)
-    for line in badFormat:
-        nw = line.split()
-        #print(nw)
-        dict[nw[0]] = []
-        nc = nw[2].split(",")
-        for node in nc:
-            dict[nw[0]].append(node)
-    #print(dict)
+def formatToCycle(dict):
     
     n1 = ""
     p1 = ""
@@ -121,18 +102,19 @@ def formatToCycleDict(badFormat):
     keys = dict.keys()
     
     for key in keys:
-        if key not in dict:
-            dict[key] = []
-       # print("node lord", key)
         if key not in tally:
             tally[key] = 0
+        
         for edge in dict[key]:
-            if edge not in dict:
-                dict[edge] = []
-        #    print("edge lord", edge)
-            if edge not in tally:
-                tally[edge] = 0
-            tally[edge] = tally[edge] - 1
+            # becuase lists cant be keys in python
+            # we are forced to transform the list into a string to use as the key
+            tmpKey = edge[0] + "|" + edge[1]
+            if tmpKey not in dict:
+                dict[tmpKey] = []
+            
+            if tmpKey not in tally:
+                tally[tmpKey] = 0
+            tally[tmpKey] = tally[tmpKey] - 1
             tally[key] = tally[key] + 1
 
     for node in tally:
@@ -140,7 +122,8 @@ def formatToCycleDict(badFormat):
             p1 = node
         if tally[node] < 0:
             n1 = node
-    #print("tally", tally) 
+    print("tally", tally) 
+    
     for thing in tally:
         if tally[thing] != 0:
             print(thing)
@@ -149,7 +132,7 @@ def formatToCycleDict(badFormat):
     if p1 != "" and n1 !="":
         print("APPENDED")
         dict[n1].append(p1)
-    #print("DICT WE PASS",dict)
+        print("Format to cycle results", dict)
     return [dict, p1, n1]
 
 
@@ -160,4 +143,4 @@ if __name__ == "__main__":
             param = input.read().splitlines()
             text = param[0:]
             #print(makeProfile(["AGC", "AAA", "AGG", "CAC"]))
-            output.write(eulerianPath(text))
+            output.write(eulerianiPairPath(text))
